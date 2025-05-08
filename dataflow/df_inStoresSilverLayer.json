@@ -1,0 +1,90 @@
+{
+	"name": "df_inStoresSilverLayer",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "synapsevineelad-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "AzureSqlDatabase1",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          TransactionID as short,",
+				"          CustomerID as short,",
+				"          StoreID as short,",
+				"          DateTime as timestamp,",
+				"          Amount as double,",
+				"          PaymentMethod as string",
+				"     ),",
+				"     useSchema: false,",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'project3',",
+				"     folderPath: 'BronzeLayer',",
+				"     fileName: 'InStoreTransactions.csv',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true) ~> source1",
+				"source1 filter(!isNull(TransactionID)&&!isNull(StoreID)&&!isNull(CustomerID)) ~> filter1",
+				"filter1 derive(PaymentMethod = iif(isNull(PaymentMethod) || lower(trim(PaymentMethod)) == 'null', 'unknown', PaymentMethod),",
+				"          Amount = coalesce(Amount,0.0),",
+				"          DateTime = coalesce(DateTime, toTimestamp('1900-01-01 00:00:00.000'))) ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          TransactionID as integer,",
+				"          CustomerID as integer,",
+				"          StoreID as integer,",
+				"          DateTime as timestamp,",
+				"          Amount as decimal(10,2),",
+				"          PaymentMethod as string",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'InStoreTransactions',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     stagingSchemaName: '',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          TransactionID,",
+				"          CustomerID,",
+				"          StoreID,",
+				"          DateTime,",
+				"          Amount,",
+				"          PaymentMethod",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

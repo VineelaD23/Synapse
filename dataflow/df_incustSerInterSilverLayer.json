@@ -1,0 +1,90 @@
+{
+	"name": "df_incustSerInterSilverLayer",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "synapsevineelad-WorkspaceDefaultStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "AzureSqlDatabase1",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          InteractionID as short,",
+				"          CustomerID as short,",
+				"          DateTime as timestamp,",
+				"          AgentID as short,",
+				"          IssueType as string,",
+				"          ResolutionStatus as string",
+				"     ),",
+				"     useSchema: false,",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'project3',",
+				"     folderPath: 'BronzeLayer',",
+				"     fileName: 'CustomerServiceInteractions.csv',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true) ~> source1",
+				"source1 filter(!isNull(InteractionID)&&!isNull(AgentID)&&!isNull(CustomerID)) ~> filter1",
+				"filter1 derive(IssueType = iif(isNull(IssueType) || lower(trim(IssueType)) == 'null', 'unknown', IssueType),",
+				"          ResolutionStatus = iif(isNull(ResolutionStatus) || lower(trim(ResolutionStatus)) == 'null', 'unknown', ResolutionStatus),",
+				"          DateTime = coalesce(DateTime, toTimestamp('1900-01-01 00:00:00.000'))) ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          InteractionID as integer,",
+				"          CustomerID as integer,",
+				"          DateTime as timestamp,",
+				"          AgentID as integer,",
+				"          IssueType as string,",
+				"          ResolutionStatus as string",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'CustomerServiceInteractions',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     stagingSchemaName: '',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          InteractionID,",
+				"          CustomerID,",
+				"          DateTime,",
+				"          AgentID,",
+				"          IssueType,",
+				"          ResolutionStatus",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
